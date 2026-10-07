@@ -1,6 +1,6 @@
 {
   "name": "humangpt",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "A clean, open-source AI writing humanizer. Built for natural writing, not detector guarantees.",
   "type": "module",
@@ -16,7 +16,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
-    "check": "npm run typecheck && npm test && npm run build"
+    "train:local": "tsx scripts/train-ranker.ts",
+    "test:model": "tsx scripts/train-ranker.ts --check",
+    "check": "npm run typecheck && npm test && npm run test:model && npm run build"
   },
   "dependencies": {
     "dotenv": "18.0.6",

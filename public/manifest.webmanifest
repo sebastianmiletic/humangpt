@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "HumanGPT",
+  "short_name": "HumanGPT",
+  "description": "Clearer writing, locally in your browser. Optional cloud rewrites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f9f6",
+  "theme_color": "#f8f9f6",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

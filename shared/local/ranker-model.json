@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "featureNames": [
+    "bulkyPhraseDensity",
+    "longSentenceLoad",
+    "longWordRatio",
+    "averageWordLength",
+    "fragmentRatio",
+    "repeatedFunctionWords",
+    "spacingIssues"
+  ],
+  "weights": [
+    -4.1437756,
+    -0.10547526,
+    -1.25570111,
+    -0.42433875,
+    -1.1079791,
+    -1.5623948,
+    -1.35458066
+  ],
+  "training": {
+    "method": "pairwise logistic regression",
+    "examples": 56,
+    "validationExamples": 16,
+    "validationCorrect": 16,
+    "epochs": 2400,
+    "learningRate": 0.25,
+    "regularization": 0.008,
+    "datasetSha256": "d2079c77fcbdcd1524266950bfce4f92cdeb0b7dad5f4fdf83980964ae092ead",
+    "scope": "Small authored English preference set. Not a language model or a semantic-quality guarantee."
+  }
+}

@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { countWords, MAX_CHARACTERS, MAX_WORDS, TONES } from '../shared/text';
+import { LENGTHS, SMARTNESS_LEVELS, VOCABULARIES } from '../shared/settings';
+import { resolveSmartness } from '../shared/local/analysis';
 import type { AppConfig } from './config';
 import { AppError } from './errors';
 import { humanize } from './humanize';
@@ -12,6 +14,12 @@ import { UsageGuard } from './usage';
 const inputSchema = z.object({
   text: z.string().trim().min(1, 'Paste a draft before rewriting.').max(MAX_CHARACTERS, `Keep your draft under ${MAX_CHARACTERS.toLocaleString('en-US')} characters.`),
   tone: z.enum(TONES).default('natural'),
+  smartness: z.enum(SMARTNESS_LEVELS).default('adaptive'),
+  vocabulary: z.enum(VOCABULARIES).default('balanced'),
+  length: z.enum(LENGTHS).default('preserve'),
+  contractions: z.boolean().default(false),
+  sentenceVariety: z.boolean().default(true),
+  protectedTerms: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
 }).strict().refine((input) => countWords(input.text) <= MAX_WORDS, {
   message: `Keep your draft under ${MAX_WORDS.toLocaleString('en-US')} words. Try rewriting one section at a time.`,
   path: ['text'],
@@ -36,6 +44,8 @@ export function createApp(config: AppConfig, options: AppOptions = {}) {
         imgSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        manifestSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         upgradeInsecureRequests: config.isProduction ? [] : null,
@@ -95,10 +105,10 @@ export function createApp(config: AppConfig, options: AppOptions = {}) {
     };
     res.on('close', onClose);
     try {
-      const { text, tone } = parsed.data;
-      const rewritten = await humanize(text, tone, config, controller.signal, options.fetcher);
+      const { text, ...settings } = parsed.data;
+      const rewritten = await humanize(text, settings.tone, config, controller.signal, options.fetcher, settings);
       if (!controller.signal.aborted) {
-        res.json({ text: rewritten, tone, sourceWords: countWords(text), resultWords: countWords(rewritten) });
+        res.json({ text: rewritten, tone: settings.tone, smartness: resolveSmartness(text, settings).level, sourceWords: countWords(text), resultWords: countWords(rewritten) });
       }
     } finally {
       res.off('close', onClose);

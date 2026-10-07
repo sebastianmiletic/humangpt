@@ -6,6 +6,7 @@ import { MAX_CHARACTERS, MAX_WORDS } from '../../shared/text';
 const REWRITE = 'Clear writing helps people connect.\n\nSay what you mean in a natural, conversational way, and your message is easier to understand.';
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('humangpt.preferences.v2', JSON.stringify({ engine: 'cloud' })));
   await page.route('**/api/health', (route) => route.fulfill({ json: { status: 'ok', configured: true } }));
 });
 
@@ -21,9 +22,15 @@ test('paste, choose a tone, rewrite, copy, and download', async ({ page, context
   const source = page.getByRole('textbox', { name: 'Your draft' });
   await source.fill('Effective communication plays a crucial role in fostering meaningful connections.');
   await page.getByRole('radio', { name: 'Casual', exact: true }).check();
+  await page.getByRole('radio', { name: 'High', exact: true }).check();
+  await page.getByLabel('Vocabulary', { exact: false }).selectOption('simple');
+  await page.getByText('Fine-tune your rewrite', { exact: true }).click();
+  await page.getByLabel('Length', { exact: false }).selectOption('concise');
+  await page.getByLabel('Allow contractions', { exact: true }).check();
+  await page.getByLabel('Protected words or phrases', { exact: false }).fill('Exact Product');
   await page.getByRole('button', { name: 'Humanize text' }).click();
   await expect(page.getByRole('textbox', { name: 'Rewritten text' })).toHaveValue(REWRITE);
-  expect(submitted).toMatchObject({ tone: 'casual', text: 'Effective communication plays a crucial role in fostering meaningful connections.' });
+  expect(submitted).toMatchObject({ tone: 'casual', smartness: 'high', vocabulary: 'simple', length: 'concise', contractions: true, protectedTerms: ['Exact Product'], text: 'Effective communication plays a crucial role in fostering meaningful connections.' });
   await page.getByRole('button', { name: 'Copy text' }).click();
   await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(REWRITE);
@@ -33,7 +40,7 @@ test('paste, choose a tone, rewrite, copy, and download', async ({ page, context
   expect(download.suggestedFilename()).toBe('humangpt-rewrite.txt');
   expect(await readFile((await download.path())!, 'utf8')).toBe(REWRITE);
   await source.fill('A changed draft.');
-  await expect(page.getByText('Your draft or tone has changed.')).toBeVisible();
+  await expect(page.getByText('Your draft or settings have changed.', { exact: false })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Rewritten text' })).toHaveValue(REWRITE);
 });
 
@@ -77,7 +84,7 @@ test('explains missing configuration rather than faking a rewrite', async ({ pag
   const response = await request.get('/api/health');
   expect(await response.json()).toEqual({ status: 'ok', configured: false });
   await page.goto('/');
-  await expect(page.getByText('One setup step left.')).toBeVisible();
+  await expect(page.getByText('Cloud mode needs an API key.')).toBeVisible();
   await page.getByRole('button', { name: 'Try an example' }).click();
   await expect(page.getByRole('button', { name: 'Humanize text' })).toBeDisabled();
 });
@@ -135,7 +142,7 @@ test('fits the viewport and remains usable at 320px', async ({ page }, testInfo)
   await page.setViewportSize({ width: 320, height: 720 });
   expect(await hasOverflow()).toBe(false);
   await expect(page.getByRole('button', { name: 'Humanize text' })).toBeVisible();
-  await page.getByText('Privacy', { exact: true }).click();
-  await expect(page.getByText('Text is sent to the configured AI provider', { exact: false })).toBeVisible();
+  await page.getByText('Privacy & offline', { exact: true }).click();
+  await expect(page.getByText('Local mode never sends your draft to a server.', { exact: false })).toBeVisible();
   expect(await hasOverflow()).toBe(false);
 });

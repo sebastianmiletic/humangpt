@@ -23,7 +23,7 @@ describe('HTTP API', () => {
   it('returns a real provider result and word counts', async () => {
     const { app, fetcher } = setup();
     const response = await request(app).post('/api/humanize').send({ text: 'My original draft.', tone: 'professional' }).expect(200);
-    expect(response.body).toEqual({ text: 'Your natural rewrite.', tone: 'professional', sourceWords: 3, resultWords: 3 });
+    expect(response.body).toMatchObject({ text: 'Your natural rewrite.', tone: 'professional', sourceWords: 3, resultWords: 3, smartness: 'low' });
     expect(fetcher).toHaveBeenCalledOnce();
     expect(response.text).not.toContain('server-only-test-secret');
   });
@@ -35,12 +35,25 @@ describe('HTTP API', () => {
   it.each([
     { text: '' }, { text: '  \n  ' }, {}, { text: 123 },
     { text: 'Hello', tone: 'undetectable' }, { text: 'Hello', extra: true },
+    { text: 'Hello', smartness: 'infinite' }, { text: 'Hello', vocabulary: 'nonsense' },
+    { text: 'Hello', length: 'invent' }, { text: 'Hello', contractions: 'yes' },
+    { text: 'Hello', sentenceVariety: 1 }, { text: 'Hello', protectedTerms: ['a'.repeat(81)] },
+    { text: 'Hello', protectedTerms: Array(21).fill('a') },
     { text: 'word '.repeat(MAX_WORDS + 1) }, { text: 'a'.repeat(MAX_CHARACTERS + 1) },
   ])('rejects invalid input %j without contacting the provider', async (input) => {
     const { app, fetcher } = setup();
     const response = await request(app).post('/api/humanize').send(input).expect(400);
     expect(response.body.error.code).toBe('invalid_input');
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('passes all validated controls to the cloud provider', async () => {
+    const { app, fetcher } = setup();
+    const response = await request(app).post('/api/humanize').send({ text: 'We utilize the guide.', tone: 'natural', smartness: 'high', vocabulary: 'advanced', length: 'concise', contractions: true, sentenceVariety: false, protectedTerms: ['Exact Product'] }).expect(200);
+    expect(response.body.smartness).toBe('high');
+    const body = JSON.parse(fetcher.mock.calls[0][1]?.body as string);
+    expect(body.messages[0].content).toContain('Retain precise and technical vocabulary');
+    expect(body.messages[0].content).toContain('Edit more thoroughly');
+    expect(JSON.parse(body.messages[1].content).protected_terms).toEqual(['Exact Product']);
   });
   it('rejects non-JSON bodies', async () => {
     const { app } = setup();

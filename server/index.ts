@@ -10,7 +10,7 @@ const app = createApp(config, {
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.info(`HumanGPT is listening on port ${config.port}.`);
-  if (!config.apiKey) console.warn('Rewriting is disabled until OPENAI_API_KEY is configured.');
+  if (!config.apiKey) console.info('Local rewriting is available. Cloud rewriting is disabled until OPENAI_API_KEY is configured.');
 });
 server.requestTimeout = 75_000;
 server.headersTimeout = 15_000;
